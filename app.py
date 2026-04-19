@@ -50,3 +50,7 @@ if df is not None and similarity is not None:
             st.error(f"Error processing recommendations: {e}")
 else:
     st.error("Missing pickle files! Upload 'similarity.pkl' and 'electronics_list.pkl' to GitHub.")
+
+ # --- The Footer is back here ---
+st.divider()
+st.caption("Electronics Recommendation System | Portfolio Project")   
