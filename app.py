@@ -1,65 +1,59 @@
 import streamlit as st
-import pandas as pd
-import os
 import pickle
+import os
 
-# Page Configuration
+# Page layout and title
 st.set_page_config(page_title="Electronics Recommender", page_icon="💻", layout="wide")
 
 def load_data():
+    """Loads the similarity matrix and product list from pickle files."""
     base_path = os.path.dirname(os.path.abspath(__file__))
     
-    # Ensure these filenames match exactly with your GitHub files
-    csv_path = os.path.join(base_path, 'Electronics_Data.csv')
+    # Path to your generated pickle files
     pickle_path = os.path.join(base_path, 'similarity.pkl')
+    df_path = os.path.join(base_path, 'electronics_list.pkl')
 
-    if not os.path.exists(csv_path):
-        return None, None, "Error: 'Electronics_Data.csv' not found."
-    
-    df = pd.read_csv(csv_path)
-    
-    if os.path.exists(pickle_path):
+    if os.path.exists(pickle_path) and os.path.exists(df_path):
+        with open(df_path, 'rb') as f:
+            df = pickle.load(f)
         with open(pickle_path, 'rb') as f:
             similarity = pickle.load(f)
-    else:
-        return df, None, "Warning: 'similarity.pkl' missing."
-        
-    return df, similarity, None
+        return df, similarity
+    return None, None
 
-# Main Application UI
+# Load the brain of the app
+df, similarity = load_data()
+
 st.title("💻 Electronics Recommendation System")
-st.markdown("Enter a product name below to get AI-powered recommendations.")
+st.markdown("Find the best tech products similar to your favorites.")
 
-df, similarity, error = load_data()
-
-if error and df is None:
-    st.error(error)
-else:
-    # Selection Box
+if df is not None and similarity is not None:
+    # Dropdown for selecting a product
     product_list = df['product_name'].values
-    selected_product = st.selectbox(
-        "Select an item:",
-        product_list
-    )
+    selected_product = st.selectbox("Select or type a product name:", product_list)
 
     if st.button('Recommend'):
-        if similarity is not None:
-            try:
-                index = df[df['product_name'] == selected_product].index[0]
-                distances = sorted(list(enumerate(similarity[index])), reverse=True, key=lambda x: x[1])
-                
-                st.subheader("Recommended for you:")
-                
-                cols = st.columns(5)
-                for i in range(1, 6):
-                    with cols[i-1]:
-                        product_name = df.iloc[distances[i][0]].product_name
-                        st.info(product_name)
-            except Exception as e:
-                st.error(f"Error processing recommendations: {e}")
-        else:
-            st.warning("Similarity model is not loaded.")
+        try:
+            # Find the index of the selected product
+            idx = df[df['product_name'] == selected_product].index[0]
+            
+            # Get similarity scores and sort them
+            distances = sorted(list(enumerate(similarity[idx])), reverse=True, key=lambda x: x[1])
+            
+            st.subheader("Recommended for you:")
+            
+            # Display top 5 recommendations in columns
+            cols = st.columns(5)
+            for i in range(1, 6):
+                with cols[i-1]:
+                    product_name = df.iloc[distances[i][0]].product_name
+                    st.info(product_name)
+                    
+        except Exception as e:
+            st.error(f"Error processing recommendations: {e}")
+else:
+    st.error("Error: Pickle files ('similarity.pkl' and 'electronics_list.pkl') not found!")
+    st.info("Please upload the generated pickle files to your GitHub repository.")
 
-# Footer removed or updated
 st.divider()
-st.caption("Electronics Recommendation System | Portfolio Project")
+st.caption("Electronics Recommendation System | Professional Portfolio Project")
